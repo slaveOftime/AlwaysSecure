@@ -3,7 +3,9 @@ import * as crypto from 'crypto-js';
 
 const salt = "always secure";
 
-const iv = crypto.lib.WordArray.create([456, 123, 15556, 12]);
+const iv = crypto.enc.Utf8.parse('always secure iv');
+
+const keySize = 32;
 
 const cipherOption = {
 	iv: iv,
@@ -14,7 +16,7 @@ const cipherOption = {
 
 function makeAESKey(password: string) {
 	return crypto.PBKDF2(password, salt, {
-		keySize: 32,
+		keySize: keySize / 4,
 		iterations: 10000,
 		hasher: crypto.algo.SHA256
 	});

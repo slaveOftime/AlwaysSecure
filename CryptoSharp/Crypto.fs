@@ -8,19 +8,19 @@ open System.Security.Cryptography
 
 let private salt = "always secure"
 
-let private iv = [ 456; 123; 15556; 12 ] |> Seq.map (BitConverter.GetBytes >> Seq.rev) |> Seq.concat |> Seq.toArray
+let private iv = Encoding.UTF8.GetBytes("always secure iv");
 
-let private makeAESKey (password: string) =
-    use deriveBytes = new Rfc2898DeriveBytes(Encoding.UTF8.GetBytes password, Encoding.UTF8.GetBytes salt, 10_000, HashAlgorithmName.SHA256)
-    deriveBytes.GetBytes(16)
+let private keySize = 32
 
 let private createAES key =
     let aes = Aes.Create()
     aes.IV <- iv
     aes.Key <- key
-    printfn "%A" iv
-    printfn "%A" key
     aes
+
+let private makeAESKey (password: string) =
+    use deriveBytes = new Rfc2898DeriveBytes(Encoding.UTF8.GetBytes password, Encoding.UTF8.GetBytes salt, 10_000, HashAlgorithmName.SHA256)
+    deriveBytes.GetBytes(keySize)
 
 
 let encryptFile (password: string) (sourceFile: string) =
