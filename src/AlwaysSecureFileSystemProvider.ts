@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 
 export class AlwaysSecureFileSystemProvider implements vscode.FileSystemProvider {
-	onDidChangeEmitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
+	private documents = new Map<string, Uint8Array | undefined>();
+	private onDidChangeEmitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
+
 	onDidChangeFile = this.onDidChangeEmitter.event;
 
 	watch(uri: vscode.Uri, options: { readonly recursive: boolean; readonly excludes: readonly string[]; }): vscode.Disposable {
 		return {
-			dispose: () => {}
+			dispose: () => { }
 		};
 	}
 	stat(uri: vscode.Uri): vscode.FileStat | Thenable<vscode.FileStat> {
@@ -35,7 +37,7 @@ export class AlwaysSecureFileSystemProvider implements vscode.FileSystemProvider
 		this.documents.delete(uri.toString());
 	}
 	rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { readonly overwrite: boolean; }): void | Thenable<void> {
-		const doc = this.documents.get(oldUri.toJSON()) ?? Uint8Array.from([]);
+		const doc = this.documents.get(oldUri.toString());
 		this.documents.set(newUri.toString(), doc);
 		this.documents.delete(oldUri.toString());
 	}
@@ -46,10 +48,9 @@ export class AlwaysSecureFileSystemProvider implements vscode.FileSystemProvider
 		throw new Error('Method not implemented.');
 	}
 
-	documents = new Map<string, Uint8Array>();
-
-	update(uri: vscode.Uri, document: Uint8Array) {
-		this.documents.set(uri.toString(), document);
+	setDocument(key: string, data: Uint8Array | undefined) {
+		const uri = vscode.Uri.parse(key);
+		this.documents.set(key, data);
 		this.onDidChangeEmitter.fire([{
 			uri: uri,
 			type: vscode.FileChangeType.Changed

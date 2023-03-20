@@ -1,6 +1,6 @@
 {
   "name": "always-secure",
-  "publisher": "always-secure",
+  "publisher": "slaveoftime",
   "displayName": "Always secure",
   "description": "Make sure the file saved into the disk is always encrypted, decrypted file will be virtual and never will be saved into disk.",
   "version": "0.0.1",
@@ -19,11 +19,11 @@
     "commands": [
       {
         "command": "always-secure.encrypt",
-        "title": "Always Secure: encrypt file"
+        "title": "Always Secure: encrypt selected content"
       },
       {
         "command": "always-secure.decrypt",
-        "title": "Always Secure: decrypt file"
+        "title": "Always Secure: decrypt selected content"
       }
     ]
   },
@@ -33,7 +33,8 @@
     "watch": "tsc -watch -p ./",
     "pretest": "pnpm run compile && pnpm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "node ./out/test/runTest.js",
+    "publish": "vsce package"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
