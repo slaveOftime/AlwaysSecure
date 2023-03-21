@@ -1,17 +1,19 @@
-﻿module encryptsharp
+﻿module AlwaysSecure
 
 open System
 open System.Text
 open System.Security.Cryptography
 
+
 let private keySize = 32
 
 let private makeAESKey (password: string) (salt: string) =
-    use deriveBytes = new Rfc2898DeriveBytes(Encoding.UTF8.GetBytes password, Encoding.UTF8.GetBytes salt, 10_000, HashAlgorithmName.SHA256)
+    use deriveBytes =
+        new Rfc2898DeriveBytes(Encoding.UTF8.GetBytes password, Encoding.UTF8.GetBytes salt, 10_000, HashAlgorithmName.SHA256)
     deriveBytes.GetBytes(keySize)
 
 
-let encryptFile (password: string) (content: string) =
+let aesEncrypt (password: string) (content: string) =
     let aes = Aes.Create()
     let iv = aes.IV
     let ivBase64 = Convert.ToBase64String iv
@@ -19,8 +21,8 @@ let encryptFile (password: string) (content: string) =
     aes.Key <- key
     ivBase64 + ":" + (aes.EncryptCbc(Encoding.UTF8.GetBytes content, iv, PaddingMode.PKCS7) |> Convert.ToBase64String)
 
-         
-let decryptFile (password: string) (encryptedContent: string) =   
+
+let aesDecrypt (password: string) (encryptedContent: string) =
     let splits = encryptedContent.Split(":")
     let content = splits[1]
     let ivBase64 = splits[0]
