@@ -11,8 +11,14 @@ Make sure the encrypted content is always secure for edit.
 
 - If a virtual file is opened for 5 mins, then it will be closed automatically.
 
+
 ## Release Notes
 
-### 0.0.1
+## [0.0.2] - 2023-03-21
+
+- Simplify code
+- Add LN number to virtual file name
+
+## [0.0.1] - 2023-03-20
 
 - Init release

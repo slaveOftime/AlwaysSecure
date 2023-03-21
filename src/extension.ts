@@ -5,14 +5,14 @@ import { encrypt, decrypt } from './crypto';
 import { AlwaysSecureFileSystemProvider } from './AlwaysSecureFileSystemProvider';
 
 
-const alwaysSecureFilePrefix = "[VIRTUAL] ";
+const alwaysSecureFilePrefix = "[VIRTUAL]";
 const alwaysSecureScheme = 'always-secure';
 const alwaysSecureProvider = new AlwaysSecureFileSystemProvider();
 
 // Convert string to UintArray
 const encoder = new TextEncoder();
 // Cache virtual path with original file's uri, selection, encryptedContent etc.
-const encryptionBundles = new Map<string, { selection: vscode.Selection, originalUri: vscode.Uri, encryptedContent?: string, lastEditTime: number } | undefined>();
+const encryptionBundles = new Map<string, { selection: vscode.Selection, originalUri: vscode.Uri, lastEditTime: number } | undefined>();
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -62,18 +62,6 @@ export function activate(context: vscode.ExtensionContext) {
 				encryptionBundles.set(document.uri.path, undefined);
 			}
 		}),
-
-		vscode.window.onDidChangeActiveTextEditor(async activeEditor => {
-			if (activeEditor && activeEditor.document.uri.scheme !== alwaysSecureScheme) {
-				const path = createVirtualPath(activeEditor.document);
-				const bundle = encryptionBundles.get(path);
-				if (bundle && bundle.encryptedContent) {
-					encryptionBundles.set(path, undefined);
-					// Replace the selection with encrypted content
-					await activeEditor.edit(edit => edit.replace(bundle.selection, bundle.encryptedContent!));
-				}
-			}
-		})
 	);
 }
 
@@ -91,7 +79,7 @@ async function decryptSelection() {
 				const decryptedContent = await decrypt(content, password!);
 				if (decryptedContent) {
 					// Open a virtual file to edit the decrypted content
-					const path = createVirtualPath(editor.document);
+					const path = createVirtualPath(editor.document, selection);
 					const uri = vscode.Uri.from({ scheme: alwaysSecureScheme, path: path });
 					// Cache the selection for replace with encrypted content later
 					encryptionBundles.set(uri.path, { selection, originalUri: editor.document.uri, lastEditTime: Date.now() });
@@ -147,12 +135,13 @@ async function encryptVirtualFile(document: vscode.TextDocument) {
 			if (password) {
 				try {
 					const encryptedContent = await encrypt(content, password);
-					bundle.encryptedContent = encryptedContent;
 					// Close virtual editor
 					await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
-					// Open original file
-					const doc = await vscode.workspace.openTextDocument(bundle.originalUri);
-					await vscode.window.showTextDocument(doc);
+					// Open and update original file
+					const originalDoc = await vscode.workspace.openTextDocument(bundle.originalUri);
+					const originalEditor = await vscode.window.showTextDocument(originalDoc);
+					await originalEditor.edit(edit => edit.replace(bundle.selection, encryptedContent));
+					await originalDoc.save();
 				}
 				catch (error) {
 					vscode.window.showErrorMessage(`Encryption failed, ${error}`);
@@ -166,10 +155,16 @@ async function encryptVirtualFile(document: vscode.TextDocument) {
 }
 
 
-function createVirtualPath(document: vscode.TextDocument) {
+function createVirtualPath(document: vscode.TextDocument, selection: vscode.Selection) {
 	const fileName = path.basename(document.fileName);
+
+	const lineInfo =
+		selection.start.line === selection.end.line
+			? `LN${selection.start.line}`
+			: `LN${selection.start.line}-${selection.end.line}`;
+
 	// To indicate this file is virtual and not on disk
-	return document.uri.path.replace(fileName, alwaysSecureFilePrefix + fileName);
+	return document.uri.path.replace(fileName, `${alwaysSecureFilePrefix} ${lineInfo} ${fileName}`);
 }
 
 

@@ -1,5 +1,10 @@
 # Change Log
 
-## [Unreleased]
+## [0.0.2] - 2023-03-21
 
-- Initial release
+- Simplify code
+- Add LN number to virtual file name.
+
+## [0.0.1] - 2023-03-20
+
+- Init release
