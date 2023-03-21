@@ -1,41 +1,31 @@
 ﻿module encryptsharp
 
 open System
-open System.IO
 open System.Text
 open System.Security.Cryptography
 
-
-let private salt = "always secure"
-
-let private iv = Encoding.UTF8.GetBytes("always secure iv");
-
 let private keySize = 32
 
-let private createAES key =
-    let aes = Aes.Create()
-    aes.IV <- iv
-    aes.Key <- key
-    aes
-
-let private makeAESKey (password: string) =
+let private makeAESKey (password: string) (salt: string) =
     use deriveBytes = new Rfc2898DeriveBytes(Encoding.UTF8.GetBytes password, Encoding.UTF8.GetBytes salt, 10_000, HashAlgorithmName.SHA256)
     deriveBytes.GetBytes(keySize)
 
 
-let encryptFile (password: string) (sourceFile: string) =
-    let content = File.ReadAllText sourceFile |> Encoding.UTF8.GetBytes
-    let key = makeAESKey password
-    let aes = createAES key
-    let encryptedContent = aes.EncryptCbc(content, iv, PaddingMode.PKCS7) |> Convert.ToBase64String
-    let targetFile = sourceFile.Replace(Path.GetExtension sourceFile, ".secret")
-    File.WriteAllText(targetFile, encryptedContent)
+let encryptFile (password: string) (content: string) =
+    let aes = Aes.Create()
+    let iv = aes.IV
+    let ivBase64 = Convert.ToBase64String iv
+    let key = makeAESKey password ivBase64
+    aes.Key <- key
+    ivBase64 + ":" + (aes.EncryptCbc(Encoding.UTF8.GetBytes content, iv, PaddingMode.PKCS7) |> Convert.ToBase64String)
 
          
-let decryptFile (password: string) (originalExtension: string) (sourceFile: string) =   
-    let encryptedContent = File.ReadAllText(sourceFile) |> Convert.FromBase64String
-    let key = makeAESKey password
-    let aes = createAES key
-    let content = aes.DecryptCbc(encryptedContent, iv, PaddingMode.PKCS7) |> Encoding.UTF8.GetString
-    let targetFile = sourceFile.Replace(Path.GetExtension sourceFile, originalExtension)
-    File.WriteAllText(targetFile, content)
+let decryptFile (password: string) (encryptedContent: string) =   
+    let splits = encryptedContent.Split(":")
+    let content = splits[1]
+    let ivBase64 = splits[0]
+    let iv = Convert.FromBase64String ivBase64
+    let key = makeAESKey password ivBase64
+    let aes = Aes.Create()
+    aes.Key <- key
+    aes.DecryptCbc(Convert.FromBase64String content, iv, PaddingMode.PKCS7) |> Encoding.UTF8.GetString

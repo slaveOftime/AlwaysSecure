@@ -3,7 +3,7 @@
   "publisher": "slaveoftime",
   "displayName": "Always secure",
   "description": "Make sure the file saved into the disk is always encrypted, decrypted file will be virtual and never will be saved into disk.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "repository": "https://github.com/slaveOftime/AlwaysSecure",
   "engines": {
     "vscode": "^1.76.0"
