@@ -14,6 +14,10 @@ Make sure the encrypted content is always secure for edit.
 
 ## Release Notes
 
+## [0.0.4] - 2023-03-21
+
+Use lower case as virtual file key to avoid some edge cases
+
 ## [0.0.3] - 2023-03-21
 
 Broken changes: Use dynamic IV to make it safer.
