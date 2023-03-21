@@ -1,5 +1,10 @@
 # Change Log
 
+## [0.0.5] - 2023-03-21
+
+- Code refactor
+- Lower requirement for VSCode engine
+
 ## [0.0.4] - 2023-03-21
 
 Use lower case as virtual file key to avoid some edge cases

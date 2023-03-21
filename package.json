@@ -3,10 +3,10 @@
   "publisher": "slaveoftime",
   "displayName": "Always secure",
   "description": "Make sure the file saved into the disk is always encrypted, decrypted file will be virtual and never will be saved into disk.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "repository": "https://github.com/slaveOftime/AlwaysSecure",
   "engines": {
-    "vscode": "^1.76.0"
+    "vscode": "^1.70.0"
   },
   "categories": [
     "Other"
@@ -40,7 +40,7 @@
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "16.x",
-    "@types/vscode": "^1.76.0",
+    "@types/vscode": "^1.70.0",
     "@types/crypto-js": "^4.1.1",
     "@typescript-eslint/eslint-plugin": "^5.53.0",
     "@typescript-eslint/parser": "^5.53.0",

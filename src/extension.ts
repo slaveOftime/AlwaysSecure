@@ -2,32 +2,27 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { TextEncoder } from 'util';
 import { encrypt, decrypt } from './crypto';
+import { AlwaysSecureContext } from './AlwaysSecureContext';
 import { AlwaysSecureFileSystemProvider } from './AlwaysSecureFileSystemProvider';
 
 
 const alwaysSecureFilePrefix = "[VIRTUAL]";
 const alwaysSecureScheme = 'always-secure';
+const alwaysSecureContext = new AlwaysSecureContext();
 const alwaysSecureProvider = new AlwaysSecureFileSystemProvider();
-
-// Convert string to UintArray
-const encoder = new TextEncoder();
-// Cache virtual path (lower case) with original file's uri, selection, encryptedContent etc.
-const encryptionBundles = new Map<string, { selection: vscode.Selection, originalUri: vscode.Uri, lastEditTime: number } | undefined>();
 
 
 export function activate(context: vscode.ExtensionContext) {
 	const autoCloseInternal = setInterval(async () => {
-		for (const [path, bundle] of encryptionBundles.entries()) {
+		for (const [path, bundle] of alwaysSecureContext.entries) {
 			if (bundle && Date.now() - bundle.lastEditTime > 1000 * 60 * 5) {
 				try {
-					encryptionBundles.set(path, undefined);
+					alwaysSecureContext.setBundle(path, undefined);
 					const uri = vscode.Uri.from({ scheme: alwaysSecureScheme, path: path });
 					const document = await vscode.workspace.openTextDocument(uri);
 					const editor = await vscode.window.showTextDocument(document, { preview: false });
-					await editor.edit(edit => {
-						edit.replace(new vscode.Range(0, 0, Number.MAX_VALUE, Number.MAX_VALUE), "");
-					});
-					await document.save();
+					await editor.edit(edit => edit.replace(new vscode.Range(0, 0, Number.MAX_VALUE, Number.MAX_VALUE), ""));
+					await document.save(); // So there will have no dialog popup for user to confirm
 					await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
 				} catch (error) {
 					console.warn("Close virtual file failed");
@@ -50,7 +45,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		vscode.workspace.onDidChangeTextDocument(event => {
 			if (event.document.uri.scheme === alwaysSecureScheme) {
-				const bundle = encryptionBundles.get(event.document.uri.path.toLowerCase());
+				const bundle = alwaysSecureContext.getBundle(event.document.uri.path);
 				if (bundle) {
 					bundle.lastEditTime = Date.now();
 				}
@@ -59,7 +54,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		vscode.workspace.onDidCloseTextDocument(document => {
 			if (document.uri.scheme === alwaysSecureScheme) {
-				encryptionBundles.set(document.uri.path.toLowerCase(), undefined);
+				alwaysSecureContext.setBundle(document.uri.path, undefined);
 			}
 		}),
 	);
@@ -81,8 +76,9 @@ async function decryptSelection() {
 					// Open a virtual file to edit the decrypted content
 					const path = createVirtualPath(editor.document, selection);
 					const uri = vscode.Uri.from({ scheme: alwaysSecureScheme, path: path });
+					const encoder = new TextEncoder();
 					// Cache the selection for replace with encrypted content later
-					encryptionBundles.set(path, { selection, originalUri: editor.document.uri, lastEditTime: Date.now() });
+					alwaysSecureContext.setBundle(path, { selection, originalUri: editor.document.uri, lastEditTime: Date.now() });
 					// Update the virtual editor content
 					alwaysSecureProvider.setDocument(uri.toString(), encoder.encode(decryptedContent));
 					// Open virtual editor
@@ -112,6 +108,7 @@ async function encryptSelection() {
 					// Encrypt and replace accordingly
 					const encryptedContent = await encrypt(content, password);
 					await editor.edit(edit => edit.replace(selection, encryptedContent));
+					await editor.document.save();
 				}
 				catch (error) {
 					vscode.window.showErrorMessage(`Encryption failed: ${error}`);
@@ -127,7 +124,7 @@ async function encryptSelection() {
 
 async function encryptVirtualFile(document: vscode.TextDocument) {
 	if (document.uri.scheme === alwaysSecureScheme) {
-		const bundle = encryptionBundles.get(document.uri.path.toLowerCase());
+		const bundle = alwaysSecureContext.getBundle(document.uri.path);
 		if (bundle) {
 			const content = document.getText();
 			// Encrypt file and cache it for later replacing
@@ -164,7 +161,7 @@ function createVirtualPath(document: vscode.TextDocument, selection: vscode.Sele
 			: `LN${selection.start.line}-${selection.end.line}`;
 
 	// To indicate this file is virtual and not on disk
-	return document.uri.path.replace(fileName, `${alwaysSecureFilePrefix} ${lineInfo} ${fileName}`).toLowerCase();
+	return document.uri.path.replace(fileName, `${alwaysSecureFilePrefix} ${lineInfo} ${fileName}`);
 }
 
 
